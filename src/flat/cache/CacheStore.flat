@@ -1,0 +1,8 @@
+package flat/cache
+
+trait CacheStore<TKey, TValue> {
+  public get(TKey key) -> TValue
+  public store(TKey key, TValue value) -> TValue
+  public contains(TKey key) -> Bool
+  public invalidate(TKey key)
+}

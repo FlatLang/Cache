@@ -1,0 +1,38 @@
+package flat/cache
+
+import flat/time
+
+testable class {
+  test `can create with a default cache store`() {
+    let cache = Cache()
+
+    cache.store("hey", true)
+
+    expect(cache.contains("hey")).toBe(true)
+  }
+
+  test `can invalidate value in MapCacheStore`() {
+    let cache = Cache(MapCacheStore())
+
+    cache.store("hey", true)
+    cache.invalidate("hey")
+
+    expect(cache.contains("hey")).toBe(false)
+  }
+
+  test `can set expiration date for unexpired value in MapCacheStore and access it`() {
+    let cache = Cache(MapCacheStore())
+
+    cache.store("hey", true, expiration: Expiration.fromLifetimeMs(1000))
+
+    expect(cache.contains("hey")).toBe(true)
+  }
+
+  test `can set expiration date for expired value in MapCacheStore and cannot access it`() {
+    let cache = Cache(MapCacheStore())
+
+    cache.store("hey", true, expiration: Expiration.fromLifetimeMs(1000, start: Time.currentTimeMillis - 10000))
+
+    expect(cache.contains("hey")).toBe(false)
+  }
+}

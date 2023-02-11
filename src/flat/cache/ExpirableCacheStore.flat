@@ -1,0 +1,5 @@
+package flat/cache
+
+trait<TKey, TValue> {
+  public storeWithExpiration(TKey key, TValue value, Expiration expiration)
+}
