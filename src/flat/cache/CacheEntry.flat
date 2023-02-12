@@ -1,0 +1,6 @@
+package flat/cache
+
+data class CacheEntry<TValue> {
+  visible TValue value
+  visible Long? expiration = null
+}

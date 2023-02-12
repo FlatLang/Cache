@@ -4,7 +4,7 @@ import flat/time
 import flat/thread
 
 testable class {
-  test `can create with a default cache store`() {
+  async test `can create with a default cache store`() {
     let cache = ItemCache.Builder().build()
 
     cache.store("hey")
@@ -12,7 +12,7 @@ testable class {
     expect(cache.hasValue()).toBe(true)
   }
 
-  test `can invalidate value in MapCacheStore`() {
+  async test `can invalidate value in MapCacheStore`() {
     let cache = ItemCache.Builder().withStore(MapCacheStore()).build()
 
     cache.store("hey")
@@ -21,14 +21,14 @@ testable class {
     expect(cache.hasValue()).toBe(false)
   }
 
-  test `getOrStore can get new value`() {
+  async test `getOrStore can get new value`() {
     let cache = ItemCache.Builder().withStore(MapCacheStore()).build()
 
     expect(cache.getOrStore({ "hey" })).toBe("hey")
     expect(cache.get()).toBe("hey")
   }
 
-  test `getOrStore does not overwrite valid value`() {
+  async test `getOrStore does not overwrite valid value`() {
     let cache = ItemCache.Builder().withStore(MapCacheStore()).build()
 
     cache.store("before")
@@ -37,7 +37,7 @@ testable class {
     expect(cache.get()).toBe("before")
   }
 
-  test `expires immediately with a lifetime of zero`() {
+  async test `expires immediately with a lifetime of zero`() {
     let cache = ItemCache.Builder()
       .withLifetime(0)
       .withStore(MapCacheStore())
@@ -48,7 +48,7 @@ testable class {
     expect(cache.hasValue()).toBe(false)
   }
 
-  test `can access a non-expired a value`() {
+  async test `can access a non-expired a value`() {
     let cache = ItemCache.Builder()
       .withLifetime(100)
       .withStore(MapCacheStore())

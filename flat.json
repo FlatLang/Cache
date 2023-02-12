@@ -17,7 +17,8 @@
         "github:FlatLang/IO": "master",
         "github:FlatLang/Stream": "master",
         "github:FlatLang/Datastruct": "master",
-        "github:FlatLang/Time": "master"
+        "github:FlatLang/Time": "master",
+        "github:FlatLang/Json": "master"
       }
     },
     "test": {

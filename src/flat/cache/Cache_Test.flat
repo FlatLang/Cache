@@ -3,7 +3,7 @@ package flat/cache
 import flat/time
 
 testable class {
-  test `can create with a default cache store`() {
+  async test `can create with a default cache store`() {
     let cache = Cache.Builder().build()
 
     cache.store("hey", true)
@@ -11,7 +11,7 @@ testable class {
     expect(cache.contains("hey")).toBe(true)
   }
 
-  test `can invalidate value in MapCacheStore`() {
+  async test `can invalidate value in MapCacheStore`() {
     let cache = Cache.Builder().withStore(MapCacheStore()).build()
 
     cache.store("hey", true)

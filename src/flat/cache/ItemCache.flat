@@ -10,7 +10,7 @@ class<TValue> {
     private Long? lifetime = null
   ) {}
 
-  checkExpired() -> Bool {
+  async checkExpired() -> Bool {
     if (lifetime == null) return false
     if (storageTimestamp == 0) return true
     if (lifetime.value > Time.currentTimeMillis - storageTimestamp) return false
@@ -20,19 +20,19 @@ class<TValue> {
     return true
   }
 
-  public hasValue() -> Bool {
+  public async hasValue() -> Bool {
     if (checkExpired()) return false
 
     return cacheStore.contains("")
   }
 
-  public get() -> TValue {
+  public async get() -> TValue {
     if (checkExpired()) return null
 
     return cacheStore.get("")
   }
 
-  public store(TValue value) -> TValue {
+  public async store(TValue value) -> TValue {
     let stored = cacheStore.store("", value)
 
     if (lifetime != null) storageTimestamp = Time.currentTimeMillis
@@ -40,13 +40,13 @@ class<TValue> {
     return stored
   }
 
-  public invalidate() {
+  public async invalidate() {
     cacheStore.invalidate("")
 
     storageTimestamp = 0
   }
 
-  public getOrStore(storeFunc() -> TValue) -> TValue {
+  public async getOrStore(async storeFunc() -> TValue) -> TValue {
     let value = get()
 
     if (value) return value

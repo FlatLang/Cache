@@ -2,47 +2,22 @@ package flat/cache
 
 import flat/datastruct
 
-class<TKey, TValue> implements CacheStore<TKey, TValue>, ExpirableCacheStore<TKey, TValue> {
-  HashMap<TKey, CacheEntry<TValue>> cache = HashMap()
+class<TKey, TValue> implements CacheStore<TKey, TValue> {
+  HashMap<TKey, TValue> cache = HashMap()
 
-  override public invalidate(TKey key) => cache.remove(key)
-
-  override public contains(TKey key) -> Bool {
-    if (let entry = cache[key]) {
-      if (entry.expiration && entry.expiration.expired) {
-        invalidate(key)
-        return false
-      }
-
-      return true
-    }
-
-    return false
+  override public async invalidate(TKey key) {
+    cache.remove(key)
   }
 
-  override public get(TKey key) -> TValue {
-    if (let entry = cache[key]) {
-      if (entry.expiration && entry.expiration.expired) {
-        invalidate(key)
-        return null
-      }
-
-      return entry.value
-    }
-
-    return null
+  override public async contains(TKey key) -> Bool {
+    return cache.containsKey(key)
   }
 
-  override public store(TKey key, TValue value) => value {
-    cache[key] = CacheEntry(value)
+  override public async get(TKey key) -> TValue {
+    return cache[key]
   }
 
-  override public storeWithExpiration(TKey key, TValue value, Expiration expiration) {
-    cache[key] = CacheEntry(value, expiration)
-  }
-
-  static data class CacheEntry<TValue> {
-    visible TValue value
-    visible Expiration expiration = null
+  override public async store(TKey key, TValue value) => value {
+    cache[key] = value
   }
 }
