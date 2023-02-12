@@ -1,22 +1,23 @@
 package flat/cache
 
 class<TKey, TValue> {
-  public construct(private CacheStore<TKey, TValue> cacheStore = MapCacheStore())
+  private construct(private CacheStore<TKey, TValue> cacheStore) {}
 
   public contains(TKey key) => cacheStore.contains(key)
+  public get(TKey key) => cacheStore.get(key)
+  public store(TKey key, TValue value) => cacheStore.store(key, value)
   public invalidate(TKey key) => cacheStore.invalidate(key)
-  public store(TKey key, TValue value, Long lifetimeMs) => store(key, value, Expiration.fromLifetimeMs(lifetimeMs))
-  public store(TKey key, TValue value, Expiration expiration = null) -> TValue {
-    if (expiration) {
-      if (!cacheStore.class.isOfType(ExpirableCacheStore.class)) throw Exception("CacheStore #{cacheStore.class.location} does not implement Expirable")
+  public getOrStore(TKey key, storeFunc() -> TValue) => get(key) ?: store(key, storeFunc())
 
-      ((ExpirableCacheStore)cacheStore).storeWithExpiration(key, value, expiration)
+  public static class Builder<TKey, TValue> {
+    var CacheStore<TKey, TValue> cacheStore
 
-      return value
+    public withStore(CacheStore<TKey, TValue> value) => this {
+      cacheStore = value
     }
 
-    cacheStore.store(key, value)
-
-    return value
+    public build() -> Cache<TKey, TValue> {
+      return Cache(cacheStore == null ? MapCacheStore() : cacheStore)
+    }
   }
 }

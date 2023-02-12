@@ -1,0 +1,76 @@
+package flat/cache
+
+import flat/time
+
+class<TValue> {
+  var Long storageTimestamp
+
+  private construct(
+    private CacheStore<Object, TValue> cacheStore,
+    private Long? lifetime = null
+  ) {}
+
+  checkExpired() -> Bool {
+    if (lifetime == null) return false
+    if (storageTimestamp == 0) return true
+    if (lifetime.value > Time.currentTimeMillis - storageTimestamp) return false
+
+    invalidate()
+
+    return true
+  }
+
+  public hasValue() -> Bool {
+    if (checkExpired()) return false
+
+    return cacheStore.contains("")
+  }
+
+  public get() -> TValue {
+    if (checkExpired()) return null
+
+    return cacheStore.get("")
+  }
+
+  public store(TValue value) -> TValue {
+    let stored = cacheStore.store("", value)
+
+    if (lifetime != null) storageTimestamp = Time.currentTimeMillis
+
+    return stored
+  }
+
+  public invalidate() {
+    cacheStore.invalidate("")
+
+    storageTimestamp = 0
+  }
+
+  public getOrStore(storeFunc() -> TValue) -> TValue {
+    let value = get()
+
+    if (value) return value
+
+    return store(storeFunc())
+  }
+
+  public static class Builder<TValue> {
+    var Long? lifetime
+    var CacheStore<Object, TValue> cacheStore
+
+    public withLifetime(Long ms) => this {
+      lifetime = ms
+    }
+
+    public withStore<TValue>(CacheStore<Object, TValue> value) -> Builder<TValue> => this {
+      cacheStore = value
+    }
+
+    public build() -> ItemCache<TValue> {
+      return ItemCache(
+        cacheStore: cacheStore == null ? MapCacheStore() : cacheStore,
+        lifetime: lifetime
+      )
+    }
+  }
+}
