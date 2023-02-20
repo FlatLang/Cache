@@ -41,6 +41,10 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
   override public async store(TKey key, TValue value) -> TValue {
     File file = files.getOrDefault(key, { keyToFileMapper.map({ _(key) }).first })
 
+    if (!file.getParent().exists) {
+      file.getParent().mkdirs()
+    }
+
     FileWriter(file)
       .write(serializer.map({ _(value) }).first)
       .close()
