@@ -32,7 +32,7 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
     return files.containsKey(key)
   }
 
-  override public async get(TKey key) -> TValue {
+  override public async get(TKey key) -> TValue => null {
     if (File file = files[key]) {
       return deserializer.map({ _(FileReader(file).readAllContents()) }).first
     }
