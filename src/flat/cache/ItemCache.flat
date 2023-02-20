@@ -1,9 +1,14 @@
 package flat/cache
 
 import flat/time
+import flat/future
+import flat/log
 
 class<TValue> {
+  static Logger log = Logger(ItemCache.class)
+
   var Long storageTimestamp
+  var Future<TValue> pendingGet
 
   private construct(
     private CacheStore<Object, TValue> cacheStore,
@@ -27,6 +32,8 @@ class<TValue> {
   }
 
   public async get() -> TValue {
+    if (pendingGet) return pendingGet.get()
+
     if (checkExpired()) return null
 
     return cacheStore.get("")
@@ -52,6 +59,38 @@ class<TValue> {
     if (value) return value
 
     return store(storeFunc())
+  }
+
+  public async getThenStoreIfInvalid(async storeFunc() -> TValue) -> TValue {
+    if (pendingGet) {
+      log.debug("Returning existing pendingGet")
+      return pendingGet.get()
+    }
+
+    let value = cacheStore.get("")
+
+    if (!value) {
+      log.debug("Value does not exist. Calculating immediately")
+      return store(storeFunc())
+    }
+
+    if (!checkExpired()) {
+      log.debug("Value exists and is not expired. Returning existing value")
+
+      return value
+    }
+
+    log.debug("Value exists but is expired. Returning existing value and creating pendingGet future to calculate the new value")
+
+    pendingGet = Future.from({
+      let stored = store(storeFunc())
+
+      pendingGet = null
+
+      return stored
+    })
+
+    return value
   }
 
   public static class Builder<TValue> {
