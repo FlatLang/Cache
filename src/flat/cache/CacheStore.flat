@@ -1,8 +1,8 @@
 package flat/cache
 
 trait CacheStore<TKey, TValue> {
-  public async get(TKey key) -> TValue
-  public async store(TKey key, TValue value) -> TValue
-  public async contains(TKey key) -> Bool
-  public async invalidate(TKey key)
+    public async get(TKey key) -> TValue
+    public async store(TKey key, TValue value) -> TValue
+    public async contains(TKey key) -> Bool
+    public async invalidate(TKey key)
 }

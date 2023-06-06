@@ -4,51 +4,51 @@ import flat/io
 import flat/datastruct
 
 class<TKey, TValue> implements CacheStore<TKey, TValue> {
-  HashMap<TKey, File> files = HashMap()
+    HashMap<TKey, File> files = HashMap()
 
-  Array<func(TValue value) -> String> serializer = Array()
-  Array<func(String str) -> TValue> deserializer = Array()
-  Array<func(TKey key) -> String> keyToFileMapper = Array()
+    Array<func(TValue value) -> String> serializer = Array()
+    Array<func(String str) -> TValue> deserializer = Array()
+    Array<func(TKey key) -> String> keyToFileMapper = Array()
 
-  public construct(
-    serializer(TValue) -> String,
-    deserializer(String) -> TValue,
-    keyToFileMapper(TKey) -> String
-  ) {
-    this.serializer.add(serializer)
-    this.deserializer.add(deserializer)
-    this.keyToFileMapper.add(keyToFileMapper)
-  }
-
-  override public async invalidate(TKey key) {
-    if (File file = files[key]) {
-      if (!file.exists) return
-
-      file.delete()
-    }
-  }
-
-  override public async contains(TKey key) -> Bool {
-    return files.containsKey(key)
-  }
-
-  override public async get(TKey key) -> TValue => null {
-    if (File file = files[key]) {
-      return deserializer.map({ _(FileReader(file).readAllContents()) }).first
-    }
-  }
-
-  override public async store(TKey key, TValue value) -> TValue {
-    File file = files.getOrDefault(key, { keyToFileMapper.map({ _(key) }).first })
-
-    if (!file.getParent().exists) {
-      file.getParent().mkdirs()
+    public construct(
+        serializer(TValue) -> String,
+        deserializer(String) -> TValue,
+        keyToFileMapper(TKey) -> String
+    ) {
+        this.serializer.add(serializer)
+        this.deserializer.add(deserializer)
+        this.keyToFileMapper.add(keyToFileMapper)
     }
 
-    FileWriter(file)
-      .write(serializer.map({ _(value) }).first)
-      .close()
+    override public async invalidate(TKey key) {
+        if (File file = files[key]) {
+            if (!file.exists) return
 
-    return value
-  }
+            file.delete()
+        }
+    }
+
+    override public async contains(TKey key) -> Bool {
+        return files.containsKey(key)
+    }
+
+    override public async get(TKey key) -> TValue => null {
+        if (File file = files[key]) {
+            return deserializer.map({ _(FileReader(file).readAllContents()) }).first
+        }
+    }
+
+    override public async store(TKey key, TValue value) -> TValue {
+        File file = files.getOrDefault(key, { keyToFileMapper.map({ _(key) }).first })
+
+        if (!file.getParent().exists) {
+            file.getParent().mkdirs()
+        }
+
+        FileWriter(file)
+            .write(serializer.map({ _(value) }).first)
+            .close()
+
+        return value
+    }
 }

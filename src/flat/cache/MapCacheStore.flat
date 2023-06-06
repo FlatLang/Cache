@@ -3,21 +3,21 @@ package flat/cache
 import flat/datastruct
 
 class<TKey, TValue> implements CacheStore<TKey, TValue> {
-  HashMap<TKey, TValue> cache = HashMap()
+    HashMap<TKey, TValue> cache = HashMap()
 
-  override public async invalidate(TKey key) {
-    cache.remove(key)
-  }
+    override public async invalidate(TKey key) {
+        cache.remove(key)
+    }
 
-  override public async contains(TKey key) -> Bool {
-    return cache.containsKey(key)
-  }
+    override public async contains(TKey key) -> Bool {
+        return cache.containsKey(key)
+    }
 
-  override public async get(TKey key) -> TValue {
-    return cache[key]
-  }
+    override public async get(TKey key) -> TValue {
+        return cache[key]
+    }
 
-  override public async store(TKey key, TValue value) => value {
-    cache[key] = value
-  }
+    override public async store(TKey key, TValue value) => value {
+        cache[key] = value
+    }
 }

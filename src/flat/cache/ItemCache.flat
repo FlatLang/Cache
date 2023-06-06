@@ -5,111 +5,111 @@ import flat/future
 import flat/log
 
 class<TValue> {
-  static Logger log = Logger(ItemCache.class)
+    static Logger log = Logger(ItemCache.class)
 
-  var Long storageTimestamp
-  var Future<TValue> pendingGet
+    var Long storageTimestamp
+    var Future<TValue> pendingGet
 
-  private construct(
-    private CacheStore<Object, TValue> cacheStore,
-    private Long? lifetime = null
-  ) {}
+    private construct(
+        private CacheStore<Object, TValue> cacheStore,
+        private Long? lifetime = null
+    ) {}
 
-  async checkExpired() -> Bool {
-    if (lifetime == null) return false
-    if (storageTimestamp == 0) return true
-    if (lifetime.value > Time.currentTimeMillis - storageTimestamp) return false
+    async checkExpired() -> Bool {
+        if (lifetime == null) return false
+        if (storageTimestamp == 0) return true
+        if (lifetime.value > Time.currentTimeMillis - storageTimestamp) return false
 
-    invalidate()
+        invalidate()
 
-    return true
-  }
-
-  public async hasValue() -> Bool {
-    if (checkExpired()) return false
-
-    return cacheStore.contains("")
-  }
-
-  public async get() -> TValue {
-    if (pendingGet) return pendingGet.get()
-
-    if (checkExpired()) return null
-
-    return cacheStore.get("")
-  }
-
-  public async store(TValue value) -> TValue {
-    let stored = cacheStore.store("", value)
-
-    if (lifetime != null) storageTimestamp = Time.currentTimeMillis
-
-    return stored
-  }
-
-  public async invalidate() {
-    cacheStore.invalidate("")
-
-    storageTimestamp = 0
-  }
-
-  public async getOrStore(async storeFunc() -> TValue) -> TValue {
-    let value = get()
-
-    if (value) return value
-
-    return store(storeFunc())
-  }
-
-  public async getThenStoreIfInvalid(async storeFunc() -> TValue) -> TValue {
-    if (pendingGet) {
-      log.debug("Returning existing pendingGet")
-      return pendingGet.get()
+        return true
     }
 
-    let value = cacheStore.get("")
+    public async hasValue() -> Bool {
+        if (checkExpired()) return false
 
-    if (!value) {
-      log.debug("Value does not exist. Calculating immediately")
-      return store(storeFunc())
+        return cacheStore.contains("")
     }
 
-    if (!checkExpired()) {
-      log.debug("Value exists and is not expired. Returning existing value")
+    public async get() -> TValue {
+        if (pendingGet) return pendingGet.get()
 
-      return value
+        if (checkExpired()) return null
+
+        return cacheStore.get("")
     }
 
-    log.debug("Value exists but is expired. Returning existing value and creating pendingGet future to calculate the new value")
+    public async store(TValue value) -> TValue {
+        let stored = cacheStore.store("", value)
 
-    pendingGet = Future.from({
-      let stored = store(storeFunc())
+        if (lifetime != null) storageTimestamp = Time.currentTimeMillis
 
-      pendingGet = null
-
-      return stored
-    })
-
-    return value
-  }
-
-  public static class Builder<TValue> {
-    var Long? lifetime
-    var CacheStore<Object, TValue> cacheStore
-
-    public withLifetime(Long ms) => this {
-      lifetime = ms
+        return stored
     }
 
-    public withStore<TValue>(CacheStore<Object, TValue> value) -> Builder<TValue> => this {
-      cacheStore = value
+    public async invalidate() {
+        cacheStore.invalidate("")
+
+        storageTimestamp = 0
     }
 
-    public build() -> ItemCache<TValue> {
-      return ItemCache(
-        cacheStore: cacheStore == null ? MapCacheStore() : cacheStore,
-        lifetime: lifetime
-      )
+    public async getOrStore(async storeFunc() -> TValue) -> TValue {
+        let value = get()
+
+        if (value) return value
+
+        return store(storeFunc())
     }
-  }
+
+    public async getThenStoreIfInvalid(async storeFunc() -> TValue) -> TValue {
+        if (pendingGet) {
+            log.debug("Returning existing pendingGet")
+            return pendingGet.get()
+        }
+
+        let value = cacheStore.get("")
+
+        if (!value) {
+            log.debug("Value does not exist. Calculating immediately")
+            return store(storeFunc())
+        }
+
+        if (!checkExpired()) {
+            log.debug("Value exists and is not expired. Returning existing value")
+
+            return value
+        }
+
+        log.debug("Value exists but is expired. Returning existing value and creating pendingGet future to calculate the new value")
+
+        pendingGet = Future.from({
+            let stored = store(storeFunc())
+
+            pendingGet = null
+
+            return stored
+        })
+
+        return value
+    }
+
+    public static class Builder<TValue> {
+        var Long? lifetime
+        var CacheStore<Object, TValue> cacheStore
+
+        public withLifetime(Long ms) => this {
+            lifetime = ms
+        }
+
+        public withStore<TValue>(CacheStore<Object, TValue> value) -> Builder<TValue> => this {
+            cacheStore = value
+        }
+
+        public build() -> ItemCache<TValue> {
+            return ItemCache(
+                cacheStore: cacheStore == null ? MapCacheStore() : cacheStore,
+                lifetime: lifetime
+            )
+        }
+    }
 }
