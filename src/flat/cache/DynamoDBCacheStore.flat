@@ -1,0 +1,61 @@
+package flat/cache
+
+import flat/io
+import flat/datastruct
+import flat/time
+import flat/aws/dynamodb
+
+class<TKey, TValue> implements CacheStore<TKey, TValue> {
+    DynamoDBClient client = DynamoDBClient()
+
+    Array<func(TValue value) -> String> serializer = Array()
+    Array<func(String str) -> TValue> deserializer = Array()
+
+    public construct(
+        serializer(TValue) -> String,
+        deserializer(String) -> TValue,
+        private String tableName
+    ) {
+        this.serializer.add(serializer)
+        this.deserializer.add(deserializer)
+    }
+
+    override public async invalidate(TKey key) {
+        client.delete(tableName, HashMap():add("key", key.toString()))
+    }
+
+    override public async contains(TKey key) -> Bool {
+        return client.get(tableName, HashMap():add("key", key.toString())) != null
+    }
+
+    public async getItem(TKey key) -> HashMap<String, Object> {
+        return client.get(tableName, HashMap():add("key", key.toString()))
+    }
+
+    override public async get(TKey key) -> TValue => null {
+        let item = getItem(key)
+        if (!item) return null
+
+        String value = (String)item["value"]
+        return deserializer.map({ _(value) }).first
+    }
+
+    override public async store(TKey key, TValue value) -> TValue => value {
+        let item = HashMap()
+            :add("key", key.toString())
+            :add("timestamp", Time.currentTimeMillis)
+            :add("value", serializer.map({ _(value) }).first)
+
+        client.put(tableName, item)
+    }
+
+    override public async checkExpired(TKey key, Long lifetime) => true {
+        if (let item = getItem(key)) {
+            if (!item.containsKey("timestamp")) return true
+
+            let timestamp = ((Long)item["timestamp"]).value
+
+            return Time.currentTimeMillis - timestamp >= lifetime
+        }
+    }
+}

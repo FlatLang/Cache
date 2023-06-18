@@ -20,7 +20,8 @@
         "https://github.com/FlatLang/Time.git": "master",
         "https://github.com/FlatLang/Json.git": "master",
         "https://github.com/FlatLang/Future.git": "master",
-        "https://github.com/FlatLang/Logger.git": "master"
+        "https://github.com/FlatLang/Logger.git": "master",
+        "https://github.com/FlatLang/DynamoDB.git": "master"
       }
     },
     "test": {

@@ -1,0 +1,15 @@
+package flat/cache
+
+class<TValue> extends DynamoDBCacheStore<Object, TValue> {
+    public construct(
+        serializer(TValue) -> String,
+        deserializer(String) -> TValue,
+        String tableName
+    ) {
+        super(
+            serializer,
+            deserializer,
+            tableName
+        )
+    }
+}
