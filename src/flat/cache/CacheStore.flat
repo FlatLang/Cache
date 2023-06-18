@@ -5,4 +5,5 @@ trait CacheStore<TKey, TValue> {
     public async store(TKey key, TValue value) -> TValue
     public async contains(TKey key) -> Bool
     public async invalidate(TKey key)
+    public async checkExpired(TKey key, Long lifetime) -> Bool
 }

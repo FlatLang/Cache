@@ -2,6 +2,7 @@ package flat/cache
 
 import flat/io
 import flat/datastruct
+import flat/time
 
 class<TKey, TValue> implements CacheStore<TKey, TValue> {
     HashMap<TKey, File> files = HashMap()
@@ -34,7 +35,9 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
 
     override public async get(TKey key) -> TValue => null {
         if (File file = files[key]) {
-            return deserializer.map({ _(FileReader(file).readAllContents()) }).first
+            let contents = FileReader(file).readAllContents()
+            let data = contents.substring(contents.indexOf(':') + 1)
+            return deserializer.map({ _(data) }).first
         }
     }
 
@@ -45,10 +48,22 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
             file.getParent().mkdirs()
         }
 
+        let data = serializer.map({ _(value) }).first
+        let timestamp = Time.currentTimeMillis
+
         FileWriter(file)
-            .write(serializer.map({ _(value) }).first)
+            .write("#{timestamp}:#{data}")
             .close()
 
         return value
+    }
+
+    override public async checkExpired(TKey key, Long lifetime) => true {
+        if (File file = files[key]) {
+            let contents = FileReader(file).readAllContents()
+            let data = contents.substring(end: contents.indexOf(':'))
+            let timestamp = Long.parseLong(data)
+            return Time.currentTimeMillis - timestamp >= lifetime
+        }
     }
 }

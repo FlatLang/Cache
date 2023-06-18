@@ -7,18 +7,17 @@ import flat/log
 class<TValue> {
     static Logger log = Logger(ItemCache.class)
 
-    var Long storageTimestamp
     var Future<TValue> pendingGet
 
     private construct(
         private CacheStore<Object, TValue> cacheStore,
-        private Long? lifetime = null
+        private Long? lifetime = null,
+        private String key = ""
     ) {}
 
     async checkExpired() -> Bool {
         if (lifetime == null) return false
-        if (storageTimestamp == 0) return true
-        if (lifetime.value > Time.currentTimeMillis - storageTimestamp) return false
+        if (!cacheStore.checkExpired(key, lifetime)) return false
 
         invalidate()
 
@@ -28,7 +27,7 @@ class<TValue> {
     public async hasValue() -> Bool {
         if (checkExpired()) return false
 
-        return cacheStore.contains("")
+        return cacheStore.contains(key)
     }
 
     public async get() -> TValue {
@@ -36,21 +35,17 @@ class<TValue> {
 
         if (checkExpired()) return null
 
-        return cacheStore.get("")
+        return cacheStore.get(key)
     }
 
     public async store(TValue value) -> TValue {
-        let stored = cacheStore.store("", value)
-
-        if (lifetime != null) storageTimestamp = Time.currentTimeMillis
+        let stored = cacheStore.store(key, value)
 
         return stored
     }
 
     public async invalidate() {
-        cacheStore.invalidate("")
-
-        storageTimestamp = 0
+        cacheStore.invalidate(key)
     }
 
     public async getOrStore(async storeFunc() -> TValue) -> TValue {
@@ -67,7 +62,7 @@ class<TValue> {
             return pendingGet.get()
         }
 
-        let value = cacheStore.get("")
+        let value = cacheStore.get(key)
 
         if (!value) {
             log.debug("Value does not exist. Calculating immediately")
@@ -96,6 +91,7 @@ class<TValue> {
     public static class Builder<TValue> {
         var Long? lifetime
         var CacheStore<Object, TValue> cacheStore
+        var String? key
 
         public withLifetime(Long ms) => this {
             lifetime = ms
@@ -105,10 +101,15 @@ class<TValue> {
             cacheStore = value
         }
 
+        public withKey(String key) => this {
+            this.key = key
+        }
+
         public build() -> ItemCache<TValue> {
             return ItemCache(
                 cacheStore: cacheStore == null ? MapCacheStore() : cacheStore,
-                lifetime: lifetime
+                lifetime: lifetime,
+                key: key ?: ""
             )
         }
     }
