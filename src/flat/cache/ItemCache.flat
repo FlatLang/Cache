@@ -11,15 +11,18 @@ class<TValue> {
 
     private construct(
         private CacheStore<Object, TValue> cacheStore,
-        private Long? lifetime = null,
-        private String key = ""
+        visible Long? lifetime = null,
+        visible String key = "",
+        visible Bool invalidateOnExpired = true
     ) {}
 
-    async checkExpired() -> Bool {
+    public async checkExpired(Bool invalidateItem = invalidateOnExpired) -> Bool {
         if (lifetime == null) return false
         if (!cacheStore.checkExpired(key, lifetime)) return false
 
-        invalidate()
+        if (invalidateItem) {
+            invalidate()
+        }
 
         return true
     }
@@ -92,6 +95,7 @@ class<TValue> {
         var Long? lifetime
         var CacheStore<Object, TValue> cacheStore
         var String? key
+        var Bool invalidateOnExpired = true
 
         public withLifetime(Long ms) => this {
             lifetime = ms
@@ -105,11 +109,16 @@ class<TValue> {
             this.key = key
         }
 
+        public withInvalidateOnExpired(Bool invalidateOnExpired) => this {
+            this.invalidateOnExpired = invalidateOnExpired
+        }
+
         public build() -> ItemCache<TValue> {
             return ItemCache(
                 cacheStore: cacheStore == null ? MapCacheStore() : cacheStore,
                 lifetime: lifetime,
-                key: key ?: ""
+                key: key ?: "",
+                invalidateOnExpired: invalidateOnExpired
             )
         }
     }
