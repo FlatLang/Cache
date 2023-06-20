@@ -3,9 +3,12 @@ package flat/cache
 import flat/io
 import flat/datastruct
 import flat/time
+import flat/log
 import flat/aws/dynamodb
 
 class<TKey, TValue> implements CacheStore<TKey, TValue> {
+    static Logger log = Logger(DynamoDBCacheStore.class)
+
     DynamoDBClient client = DynamoDBClient()
 
     Array<func(TValue value) -> String> serializer = Array()
@@ -21,15 +24,24 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
     }
 
     override public async invalidate(TKey key) {
+        log.debug("Invalidating item in table #{tableName} with key #{key}...")
         client.delete(tableName, HashMap():add("key", key.toString()))
+        log.debug("Finished invalidating item in table #{tableName} with key #{key}.")
     }
 
     override public async contains(TKey key) -> Bool {
-        return client.get(tableName, HashMap():add("key", key.toString())) != null
+        log.debug("Checking for item in table #{tableName} with key #{key}...")
+        let exists = client.get(tableName, HashMap():add("key", key.toString())) != null
+        log.debug("Item in table #{tableName} with key #{key} exists? #{exists}")
+        return exists
     }
 
     public async getItem(TKey key) -> HashMap<String, Object> {
-        return client.get(tableName, HashMap():add("key", key.toString()))
+        log.debug("Fetching item in table #{tableName} with key #{key}...")
+        let item = client.get(tableName, HashMap():add("key", key.toString()))
+        log.debug("Got item in table #{tableName} with key #{key}")
+        log.trace("Got item in table #{tableName} with key #{key}: #{item}")
+        return item
     }
 
     override public async get(TKey key) -> TValue => null {
@@ -37,7 +49,18 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
         if (!item) return null
 
         String value = (String)item["value"]
-        return deserializer.map({ _(value) }).first
+
+        log.debug("Got string value from table #{tableName} cache with key #{key}")
+        log.trace("Got string value from table #{tableName} cache with key #{key}: #{value}")
+
+        if (!value) return null
+
+        let deserialized = deserializer.map({ _(value) }).first
+
+        log.debug("Got deserialized value from table #{tableName} cache with key #{key}")
+        log.trace("Got deserialized value from table #{tableName} cache with key #{key}: #{deserialized}")
+
+        return deserialized
     }
 
     override public async store(TKey key, TValue value) -> TValue => value {
@@ -46,16 +69,32 @@ class<TKey, TValue> implements CacheStore<TKey, TValue> {
             :add("timestamp", Time.currentTimeMillis)
             :add("value", serializer.map({ _(value) }).first)
 
+        log.debug("Storing key #{key} to table #{tableName}")
+        log.trace("Storing key #{key} to table #{tableName} with values #{item}")
+
         client.put(tableName, item)
     }
 
     override public async checkExpired(TKey key, Long lifetime) => true {
+        log.debug("Checking expiration of key #{key} in table #{tableName} with lifetime of #{lifetime}ms.")
         if (let item = getItem(key)) {
-            if (!item.containsKey("timestamp")) return true
-
-            let timestamp = ((Long)item["timestamp"]).value
-
-            return Time.currentTimeMillis - timestamp >= lifetime
+            return checkItemExpired(item, lifetime)
         }
+    }
+
+    public async checkItemExpired(HashMap<String, Object> item, Long lifetime) => true {
+        log.debug("Checking expiration of key #{item["key"]} in table #{tableName} with lifetime of #{lifetime}ms.")
+        log.trace("Checking expiration of item #{item} in table #{tableName} with lifetime of #{lifetime}ms.")
+        if (!item.containsKey("timestamp")) {
+            log.debug("Cache item does not contain a timestamp property. Returning true for expired.")
+            return true
+        }
+
+        let timestamp = ((Long)item["timestamp"]).value
+        let expired = Time.currentTimeMillis - timestamp >= lifetime
+
+        log.debug("Cache item has timestamp property value #{timestamp}. Returning #{expired} for expired.")
+
+        return expired
     }
 }
