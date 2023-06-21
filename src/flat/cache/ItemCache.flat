@@ -27,6 +27,17 @@ class<TValue> {
         return true
     }
 
+    public async checkItemExpired(CacheItem<String, TValue> item, Bool invalidateItem = invalidateOnExpired) -> Bool {
+        if (lifetime == null) return false
+        if (!cacheStore.checkItemExpired(item, lifetime)) return false
+
+        if (invalidateItem) {
+            invalidate()
+        }
+
+        return true
+    }
+
     public async hasValue() -> Bool {
         if (checkExpired()) return false
 
@@ -65,17 +76,17 @@ class<TValue> {
             return pendingGet.get()
         }
 
-        let value = cacheStore.get(key)
+        let item = cacheStore.getItem(key)
 
-        if (!value) {
+        if (!item) {
             log.debug("Value does not exist. Calculating immediately")
             return store(storeFunc())
         }
 
-        if (!checkExpired()) {
+        if (!checkItemExpired(item)) {
             log.debug("Value exists and is not expired. Returning existing value")
 
-            return value
+            return item.value
         }
 
         log.debug("Value exists but is expired. Returning existing value and creating pendingGet future to calculate the new value")
@@ -88,7 +99,7 @@ class<TValue> {
             return stored
         })
 
-        return value
+        return item.value
     }
 
     public static class Builder<TValue> {

@@ -4,32 +4,19 @@ import flat/datastruct
 import flat/time
 
 class<TKey, TValue> implements CacheStore<TKey, TValue> {
-    HashMap<TKey, TValue> cache = HashMap()
-    HashMap<TKey, Long> timestamps = HashMap()
+    HashMap<TKey, CacheItem<TKey, TValue>> cache = HashMap()
 
     override public async invalidate(TKey key) {
         cache.remove(key)
-        timestamps.remove(key)
     }
 
     override public async contains(TKey key) -> Bool {
         return cache.containsKey(key)
     }
 
-    override public async get(TKey key) -> TValue {
-        return cache[key]
-    }
+    override public async getItem(TKey key) => cache[key]
 
-    override public async store(TKey key, TValue value) => value {
-        cache[key] = value
-        timestamps[key] = Time.currentTimeMillis
-    }
-
-    override public async checkExpired(TKey key, Long lifetime) => true {
-        if (!timestamps.containsKey(key)) return true
-
-        let timestamp = ((Long)timestamps[key]).value
-
-        return Time.currentTimeMillis - timestamp >= lifetime
+    override public async store(CacheItem<TKey, TValue> item) => item {
+        cache[item.key] = item
     }
 }
