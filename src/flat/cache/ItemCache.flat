@@ -71,14 +71,14 @@ class<TValue> {
     }
 
     public async getThenStoreIfInvalid(async storeFunc() -> TValue) -> TValue {
-        if (pendingGet) {
-            log.debug("Returning existing pendingGet")
-            return pendingGet.get()
-        }
-
         let item = cacheStore.getItem(key)
 
         if (!item) {
+            if (pendingGet) {
+                log.debug("Returning existing pendingGet")
+                return pendingGet.get()
+            }
+
             log.debug("Value does not exist. Calculating immediately")
             return store(storeFunc())
         }
@@ -91,13 +91,21 @@ class<TValue> {
 
         log.debug("Value exists but is expired. Returning existing value and creating pendingGet future to calculate the new value")
 
-        pendingGet = Future.from({
-            let stored = store(storeFunc())
+        if (!pendingGet) {
+            log.debug("Attempting to refresh the cache by calculating a new value")
 
-            pendingGet = null
+            pendingGet = Future.from({
+                let stored = store(storeFunc())
 
-            return stored
-        })
+                pendingGet = null
+
+                return stored
+            })
+        } else {
+            log.debug("Cache refresh already in progress, not calculating a new value until the next call")
+        }
+
+        log.debug("Returning the stale cache item")
 
         return item.value
     }
