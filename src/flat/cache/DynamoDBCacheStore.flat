@@ -9,15 +9,14 @@ import flat/aws/dynamodb
 class<TKey, TValue> implements CacheStore<TKey, TValue> {
     static Logger log = Logger(DynamoDBCacheStore.class)
 
-    DynamoDBClient client = DynamoDBClient()
-
     Array<func(TValue value) -> String> serializer = Array()
     Array<func(String str) -> TValue> deserializer = Array()
 
     public construct(
         serializer(TValue) -> String,
         deserializer(String) -> TValue,
-        private String tableName
+        private String tableName,
+        private DynamoDBClient client = DynamoDBClient()
     ) {
         this.serializer.add(serializer)
         this.deserializer.add(deserializer)
