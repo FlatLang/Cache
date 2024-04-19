@@ -8,6 +8,7 @@ class<TValue> {
     static Logger log = Logger(ItemCache.class)
 
     var Future<TValue> pendingGet
+    Array<action(Exception)> exceptionListeners = Array()
 
     private construct(
         private CacheStore<Object, TValue> cacheStore,
@@ -36,6 +37,10 @@ class<TValue> {
         }
 
         return true
+    }
+
+    public onException(func(Exception)) {
+        exceptionListeners.add(func)
     }
 
     public async hasValue() -> Bool {
@@ -80,7 +85,16 @@ class<TValue> {
             }
 
             log.debug("Value does not exist. Calculating immediately")
-            return store(storeFunc())
+            try {
+                log.debug("Calculating new stored value (no existing item)...")
+                let stored = store(storeFunc())
+                log.debug("Calculated new stored value (no existing item)")
+
+                return stored
+            } catch (Exception e) {
+                log.debug("Failed to calculate new stored value: #{e}, propagating error")
+                throw e
+            }
         }
 
         if (!checkItemExpired(item)) {
@@ -95,11 +109,20 @@ class<TValue> {
             log.debug("Attempting to refresh the cache by calculating a new value")
 
             pendingGet = Future.from({
-                let stored = store(storeFunc())
+                try {
+                    log.debug("Calculating new stored value...")
+                    let stored = store(storeFunc())
+                    log.debug("Calculated new stored value")
 
-                pendingGet = null
+                    pendingGet = null
 
-                return stored
+                    return stored
+                } catch (Exception e) {
+                    log.debug("Failed to calculate new stored value: #{e}, propagating error")
+                    throw e
+                }
+            }):onException((e) => {
+                exceptionListeners.forEach({ _(e) })
             })
         } else {
             log.debug("Cache refresh already in progress, not calculating a new value until the next call")
